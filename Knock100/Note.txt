@@ -1,0 +1,511 @@
+﻿はじめに
+自然言語処理と Python のトレーニングのため，東北大学の乾・岡崎研究室 Web ページにて公開されている言語処理100本ノックに挑戦していきます．その中で実装したコードや，抑えておくべきテクニック等々をメモしていく予定です．コードについてはGitHubでも公開しています．
+教科書は『Python入門 2&3対応（細田謙二ら著，秀和システム）』を使用しています．
+スタートアップに際して参考にさせていただいた記事をご紹介いたします．参考にしすぎてる感も否めないので，不快に感じられたらご連絡ください．
+http://qiita.com/tanaka0325/items/08831b96b684d7ecb2f7
+ズブの素人なので記法が統一されてなかったり，Python 2/3 関係が混在していたりと大変お見苦しいのですが，ご指摘いただければ幸いです．実行環境自体は Python 2 です．
+第1章: 準備運動
+00. 文字列の逆順
+文字列"stressed"の文字を逆に（末尾から先頭に向かって）並べた文字列を得よ．
+回答
+
+00.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 00.py
+
+str = "stressed"
+print(str[-1::-1])
+コメント
+
+文字列に対する「スライス」というテクニックの練習問題的な課題．前述の記事でも触れられていますが，改めてスライスのお勉強．
+スライスは文字列インデックス[開始インデックス:終了インデックス:ステップ数]という形で記述することで，文字列の一部を切り取って取得する操作方法．文字列以外にリストなどでも可．
+str = "abcdefgh"
+
+# 特定の文字を取得
+str[0]        # 'a'，先頭から zero-based
+str[-1]       # 'h'，負の数でも指定可能（文末から遡っていく）　今回はstr[7]と同義
+
+# スライス
+str[1:3]      # 'bc'，終了インデックスの文字は含まないので注意．文字数とかでもない
+str[0:-3]     # 'abcde'，負の数でもOK．今回ではstr[0:5]と同義
+str[:4]       # 'abcd'，開始インデックスを省略した場合は最初から
+str[4:]       # 'efgh'，終了インデックスを省略した場合は最後まで
+
+# ステップ数指定
+str[0:6:2]    # 'ace'，ステップ数で指定した分，飛び飛びの文字を取得（0,2,4番目）
+str[::3]      # 'adg'，省略も可能
+str[-3::2]    # 'fh'，負の数も可能
+str[::-3]     # 'hed'，ステップ数を負の数にすると逆順に遡っていく
+なので今回の回答は str[::-1] で良かったのですが，スライス初体験だったので大目に見てください...
+01. 「パタトクカシーー」
+「パタトクカシーー」という文字列の1,3,5,7文字目を取り出して連結した文字列を得よ．
+回答
+
+01.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 01.py
+
+str = u'パタトクカシーー'
+print(str[0::2])
+コメント
+
+00 と同様にスライスの練習問題．これまた同様に開始位置を省略してよく str[::2] で OK．
+また日本語（Unicode）の文字列は u'ほげほげ' といったように u を先頭につければよい（UTF-8環境）．
+02. 「パトカー」＋「タクシー」＝「パタトクカシーー」
+「パトカー」＋「タクシー」の文字を先頭から交互に連結して文字列「パタトクカシーー」を得よ．
+回答
+
+02.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 02.py
+
+str1 = u'パトカー'
+str2 = u'タクシー'
+str3 = u''
+
+for a,b in zip(str1, str2):
+    str3 = str3 + a + b
+
+print str3
+コメント
+
+zip()は各引数から要素を1つずつ取り出してタプルを生成してくれる関数．for loop の条件指定の際に使えるテクニック．
+print が突然関数じゃなくなってますが，こちらは Python 2 記法．混在しててごめんなさい．
+そしてこれまた前述記事でも触れられていますが，どうもループ時に毎回毎回末尾に追加していく方式は実行速度的に問題アリとのこと．
+print(''.join([a + b for a, b in zip(str1, str2)])) として，あとで文字列をまとめて結合させてしまうのがベストらしい．
+''.join() は引数内の要素を '' 内の区切り文字で区切った上で結合するというもの．書き方が変わっているので要注意．
+03. 円周率
+"Now I need a drink, alcoholic of course, after the heavy lectures involving quantum mechanics."という文を単語に分解し，各単語の（アルファベットの）文字数を先頭から出現順に並べたリストを作成せよ．
+回答
+
+03.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 03.py
+
+str = "Now I need a drink, alcoholic of course, after the heavy lectures involving quantum mechanics."
+str = str.replace('.', "")
+str = str.replace(',', "")
+str = str.split()
+
+list = []
+
+for word in str:
+    list.append(len(word))
+
+print list
+コメント
+
+replace() でピリオドやカンマを除去したあと，split() で単語ごとに区切り，len() でその長さを取得してlistに突っ込む，という流れになっています．
+ピリオドやカンマをもっと上手く除去できる方法は無いのかなあ…と思いつつも断念．split() は引数で区切り文字を指定できる（デフォルトはスペース）ので全部まとめて指定しようかと思ったけどできず．
+04. 元素記号
+"Hi He Lied Because Boron Could Not Oxidize Fluorine. New Nations Might Also Sign Peace Security Clause. Arthur King Can."という文を単語に分解し，1, 5, 6, 7, 8, 9, 15, 16, 19番目の単語は先頭の1文字，それ以外の単語は先頭に2文字を取り出し，取り出した文字列から単語の位置（先頭から何番目の単語か）への連想配列（辞書型もしくはマップ型）を作成せよ．
+回答
+
+04.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 04.py
+
+str = "Hi He Lied Because Boron Could Not Oxidize Fluorine. New Nations Might Also Sign Peace Security Clause. Arthur King Can."
+str = str.split()
+
+dict = {}
+single = [1, 5, 6, 7, 8, 9, 15, 16, 19]
+
+for element in str:
+    if str.index(element) + 1 in single:
+        dict[element[:1]] = str.index(element) + 1
+    else:
+        dict[element[:2]] = str.index(element) + 1
+
+# 原子番号順にソートして print（蛇足）
+for k, v in sorted(dict.items(), key=lambda x:x[1]):
+    print k, v
+コメント
+
+03と同様，単語ごとに区切って for loop で個別に処理しています．どうせ先頭しか見ないのでピリオドの処理は省略しています．
+このままだとマグネシウムが Mi となってしまうのは腑に落ちないですが…やむなし？個別に指定してスライス（element[:3:2]）すれば良いんだけれども．
+わざわざ single と置く必要も無い一方，str.index(element) + 1 は3回登場するので，この辺は上手く整理したいところ．適当な変数に代入しちゃえば解決か．
+また，辞書はそもそも順序を保証しないのですが，見やすくするためにソート．
+修正
+
+修正版
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 04.py
+
+str = "Hi He Lied Because Boron Could Not Oxidize Fluorine.\
+ New Nations Might Also Sign Peace Security Clause. Arthur King Can."
+words_list = str.split()
+
+dict = {}
+single = [0, 4, 5, 6, 7, 8, 14, 15, 18]
+
+for i in range(len(words_list)):
+    clen = 1 if i in single else 2
+    dict[words_list[i][:clen]] = i + 1
+
+# 原子番号順にソートして print（蛇足）
+# for k, v in sorted(dict.items(), key=lambda x: x[1]):
+#     print(k, v)
+
+主な改善点は以下のようになります．
+\ を用いた長すぎる行の途中改行
+str の使い回し回避
+single を zero-based に変更
+冗長なコードの整理
+for の条件を要素からインデックスに変更
+特に今回の中で大きいのは，for を インデックスで回したところだと思います．
+以前のコードでは初めて知った for の書き方を試したくて，その結果 index() で改めてインデックスを取得してますしね…
+05. n-gram
+与えられたシーケンス（文字列やリストなど）からn-gramを作る関数を作成せよ．この関数を用い，"I am an NLPer"という文から単語bi-gram，文字bi-gramを得よ．
+回答
+
+05.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 05.py
+
+original = "I am an NLPer"
+
+def ngram(input, n):
+    # 文字 n-gram (引数 str)
+    l = len(input)
+    if type(input) == str:
+        input = "$" * (n - 1) + input + "$" * (n - 1)
+        for i in xrange(l + 1):
+            print input[i:i+n]
+    # 単語 n-gram (引数 list)
+    elif type(input) == list:
+        input = ["$"] * (n - 1) + input + ["$"] * (n - 1)
+        for i in xrange(l + 1):
+            print input[i:i+n]
+
+ngram(original, 2)              # 文字 n-gram
+original = original.split()
+ngram(original, 2)              # 単語 n-gram
+コメント
+
+予想以上に手こずった．文字数の長さの関係で，±1などの微調整多数...
+文字列の先頭以前・終端以降に $ を挿入した．
+Java のオーバーロードのような機能を実装したかったのだが，Python ではオーバーロードがデフォルトでは実装されていないそうなので type() で泥臭く実装．
+いただいたコメント・実装
+
+knokさん からいただいたコメントおよび実装です．
+knokさんによるngram関数の実装
+def ngram(input, n):
+    last = len(input) - n + 1
+    ret = []
+    for i in range(0, last):
+        ret.append(input[i:i+n])
+    return ret
+先頭・末尾に $ を挿入しないことで，一気にスマートな実装に．
+文字列とリストでは，どちらもインデックスで要素を指定したりスライスを行ったり出来るため，特に型を意識することはないとのこと．
+うーむ美しい．改めて自分のコード見るとめまいがしますね．ありがとうございました．
+06. 集合
+"paraparaparadise"と"paragraph"に含まれる文字bi-gramの集合を，それぞれ, XとYとして求め，XとYの和集合，積集合，差集合を求めよ．さらに，'se'というbi-gramがXおよびYに含まれるかどうかを調べよ．
+回答
+
+06.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 06.py
+
+str1 = "paraparaparadise"
+str2 = "paragraph"
+
+def ngram(input, n):
+    l = len(input)
+    list = []
+    input = "$" * (n - 1) + input + "$" * (n - 1)
+    for i in xrange(l + 1):
+        list.append(input[i:i+n])
+    return list
+
+# ngram の list を set に; 重複を排除できる上に集合演算が出来る
+X = set(ngram(str1, 2))
+Y = set(ngram(str2, 2))
+
+print X.union(Y)            # 和集合
+print X.intersection(Y)     # 積集合
+print X.difference(Y)       # 差集合
+
+print "se" in X     # in: X に "se" が含まれていれば True, いなければ False
+print "se" in Y     # ほとんど同上（X -> Y）
+
+コメント
+
+具体的な使い方に関してはコードを参照．こういう操作が直感的に書けるのは嬉しい．
+修正
+
+修正版
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 06.py
+
+from mymodule import ngram
+
+str1 = "paraparaparadise"
+str2 = "paragraph"
+
+X = set(ngram(str1, 2))
+Y = set(ngram(str2, 2))
+
+# 後略
+
+こちらの記事を参考に，05で作成した自作関数を再利用できるよう設定しました．
+07. テンプレートによる文生成
+引数x, y, zを受け取り「x時のyはz」という文字列を返す関数を実装せよ．さらに，x=12, y="気温", z=22.4として，実行結果を確認せよ．
+回答
+
+07.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 07.py
+
+x = 12
+y = u'気温'
+z = 22.4
+
+def function(x, y, z):
+    return unicode(x) + u'時の' + unicode(y) + u'は' + unicode(z)
+
+print function(x, y, z)
+
+コメント
+
+x, y はそれぞれ int, float なので，Unicode と連結する際には変換してあげないといけない．
+文字コードの変換は深く掘り下げるとかなり奥が深そうだけど，今回はこれで動作したので何より．
+zip() を利用する手もありか？ なさそう．
+08. 暗号文
+与えられた文字列の各文字を，以下の仕様で変換する関数cipherを実装せよ．
+英小文字ならば(219 - 文字コード)の文字に置換
+その他の文字はそのまま出力
+この関数を用い，英語のメッセージを暗号化・復号化せよ．
+回答
+
+08.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 08.py
+
+# 出典: Wikipedia 英語版 "Atbash" より
+str = "Atbash is a simple substitution cipher for the Hebrew alphabet."
+
+def cipher(input):
+    ret = ""
+    for char in input:
+        ret += chr(219-ord(char)) if char.islower() else char
+    return ret
+
+str = cipher(str)
+print str
+str = cipher(str)
+print str
+コメント
+
+いわゆる「アトバシュ暗号」なので，同一関数で暗号化と復号が可能．
+chr() はASCIIコードから具体的な文字に変換してくれる関数（chr(97) -> 'a'）．
+ord() はその逆だけど，Unicode であれば Unicode コードポイントを返してくれる．
+chr() の Unicode 版が unichr()．
+変換前	変換後	使用する関数
+ASCII コード	ASCII 文字	chr()
+Unicode コードポイント	Unicode 文字	unichr()
+ASCII 文字	ASCII コード	ord()
+Unicode 文字	Unicode コードポイント	ord()
+公式ドキュメントも参照．
+三項演算子を利用して if 分岐をまとめました．
+三項演算子
+# 条件式が真のとき値1，偽のとき値2
+値1 if 条件式 else 値2
+09. Typoglycemia
+スペースで区切られた単語列に対して，各単語の先頭と末尾の文字は残し，それ以外の文字の順序をランダムに並び替えるプログラムを作成せよ．ただし，長さが４以下の単語は並び替えないこととする．適当な英語の文（例えば"I couldn't believe that I could actually understand what I was reading : the phenomenal power of the human mind ."）を与え，その実行結果を確認せよ．
+回答
+
+09.py
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 09.py
+import random
+
+str = "I couldn't believe that I could actually understand what I was reading : the phenomenal power of the human mind ."
+words = str.split()
+shuffled_list = []
+
+for word in words:
+    if len(word) < 4:
+        pass
+    else:
+        char_list = list(word)
+        mid_list = char_list[1:-1]
+        random.shuffle(mid_list)
+        word = word[0] + "".join(mid_list) + word[-1]
+    shuffled_list.append(word)
+
+shuffled_str = " ".join(shuffled_list)
+print shuffled_str
+
+コメント
+
+random.shuffle() で文字列をランダムに入れ替えてくれる！すごく便利．
+C で実装しようとしたらかなり面倒臭そうだけど… Python はこういうライブラリが充実しているので有り難い．
+完全にランダムなので元の文字列と同じ文字列が返ってくることも．文字列比較して同じならやり直し，とか実装しても良いかも．
+補足
+
+（文字列）比較には == と is が存在する．
+== が純粋に内容だけを比較するのに対し，is は同じオブジェクトかどうかを比較する．
+今回もし文字列比較を実装する際には == を使う方が正しい．
+（クォーテーション）
+Python では文字列を囲む際， " と ' のどちらでも OK です．
+しかし英語の所有格や短縮形のときに ' を利用する場合，文字列全体を ' で囲うとクォーテーションが対応せずにエラーになります．
+対処法としては " で囲うか，バックスラッシュで \' といったようにエスケープしてあげれば大丈夫です．
+修正
+
+修正版
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# 09.py
+
+import random
+
+
+def word_typoglycemia(word):
+    if len(word) <= 4:
+        return word
+
+    mid_list = list(word[1:-1])
+    while mid_list == list(word[1:-1]):
+        random.shuffle(mid_list)
+    return word[0] + "".join(mid_list) + word[-1]
+
+
+def str_typoglycemia(str):
+    shuffled_list = []
+    for word in str.split():
+        shuffled_list.append(word_typoglycemia(word))
+    return " ".join(shuffled_list)
+
+
+str = "I couldn't believe that I could actually understand \
+ what I was reading : the phenomenal power of the human mind ."
+
+print(str_typoglycemia(str))
+
+主な改善点は以下のようになります．
+関数化
+冗長なコードの整理
+\ を用いた長すぎる行の途中改行
+厳密に問題文への準拠（4文字未満は除外→4文字以下は除外）
+処理前後で偶然一致して同じ文字列になることを排除（ランダム，という観点ではどうかなと思いますが）
+大きな変更点は偶然一致の排除になりますが，while が確実に終了する保証が無いのがちょっと心残り．
+可能性は極めて低いですが…（最も危険な5文字でも，n回 loop を回せば確率は 
+1
+6n
+ 
+ ）
+おわりに
+第2章・前編に続きます．
+ この記事は以下の記事からリンクされています
+言語処理100本ノック with Python（第2章・前編）からリンク12ヶ月前
+言語処理100本ノック with Python（第2章・後編）からリンク12ヶ月前
+言語処理100本ノック with Python（第3章）からリンク7ヶ月前
+ 編集リクエストを送る投稿者に記事をより良くするための提案ができます 💪
+
+
+PR 社内メールでの情報共有をなくそう - Qiita:Team
+
+knok
+135contribution
+2015-10-22 09:43
+05 n-gramはもっとシンプルに以下のコードでよいのではないでしょうか。
+def ngram(input, n):
+    last = len(input) - n + 1
+    ret = []
+    for i in range(0, last):
+        ret.append(input[i:i+n])
+    return ret
+リスト、文字列のチェックは特に不要で入力がどちらの場合も同じように処理できます。
+
+gamma1129
+332contribution
+2015-10-23 11:51
+@knok さん
+コメントありがとうございました！
+リストと文字列の区別が要らないのは目からウロコでした．
+開始・終端文字を入れようとすると分岐しなければならなそうですが，仕様を変更すればここまでシンプルに書けるんですね．
+自然言語処理の流儀が分かりかねるので難しいですが…とても参考になりました！
+
+daikw
+9contribution
+2016-08-07 17:57
+mapとリストの内包表記を使うともっと簡潔に書けますよ！
+ngram.py
+def ngram(sequence, n):
+    return [sequence[i : n + i] for i in range(len(sequence) - n + 1)]
+typoglycemia.py
+def gentypo(word):
+    if len(word) <= 4: return word
+
+    typo = list(word)[1:-1]
+    random.shuffle(typo)
+    return word[0] + ''.join(typo) + word[-1]
+
+print(' '.join(list(map(gentypo, sentence.split()))))
+あなたもコメントしてみませんか :)
+ユーザー登録(無料)
+すでにアカウントを持っている方はログイン
+
+
+gamma1129
+332Contribution
+フォロー
+人気の投稿
+
+ 言語処理100本ノック with Python（第1章）
+ 言語処理100本ノック with Python（第3章）
+ 言語処理100本ノック with Python（第2章・前編）
+ 言語処理100本ノック with Python（第2章・後編）
+
+はじめに
+第1章: 準備運動
+00. 文字列の逆順
+回答
+コメント
+01. 「パタトクカシーー」
+回答
+コメント
+02. 「パトカー」＋「タクシー」＝「パタトクカシーー」
+回答
+コメント
+03. 円周率
+回答
+コメント
+04. 元素記号
+回答
+コメント
+修正
+05. n-gram
+回答
+コメント
+いただいたコメント・実装
+06. 集合
+回答
+コメント
+修正
+07. テンプレートによる文生成
+回答
+コメント
+08. 暗号文
+回答
+コメント
+09. Typoglycemia
+回答
+コメント
+補足
+修正
+おわりに
+© 2016 Increments Inc.利用規約プライバシーヘルプお問い合わせQiitaとはブログAPITeamKobitoCareer ご意見 
